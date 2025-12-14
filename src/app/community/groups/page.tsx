@@ -1,10 +1,61 @@
 import Link from "next/link";
 import { getAllGroups } from "@/lib/content/loaders";
+import { FilterPanel } from "@/components/filters/FilterPanel";
 
 export const dynamic = "force-static";
 
-export default async function GroupsIndexPage() {
+function toURLSearchParams(
+  input: Record<string, string | string[] | undefined>,
+): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof value === "undefined") continue;
+    if (Array.isArray(value)) value.forEach((v) => params.append(key, v));
+    else params.set(key, value);
+  }
+  return params;
+}
+
+export default async function GroupsIndexPage(props: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const groups = await getAllGroups();
+  const rawSearchParams = (await props.searchParams) ?? {};
+  const params = toURLSearchParams(rawSearchParams);
+
+  const q = (params.get("q") ?? "").trim().toLowerCase();
+  const selectedTags = params.getAll("tag");
+  const selectedCadence = params.getAll("cadence");
+
+  const tags = Array.from(
+    new Set(groups.flatMap((g) => g.frontmatter.tags ?? [])),
+  ).sort((a, b) => a.localeCompare(b));
+  const cadences = Array.from(
+    new Set(groups.map((g) => g.frontmatter.meetingCadence ?? "").filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b));
+
+  const results = groups.filter((group) => {
+    const haystack = [
+      group.frontmatter.name,
+      group.frontmatter.description,
+      group.frontmatter.location ?? "",
+      group.frontmatter.meetingCadence ?? "",
+      ...(group.frontmatter.tags ?? []),
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    if (q && !haystack.includes(q)) return false;
+
+    const matchesTags =
+      selectedTags.length === 0 ||
+      selectedTags.some((tag) => (group.frontmatter.tags ?? []).includes(tag));
+    const matchesCadence =
+      selectedCadence.length === 0 ||
+      selectedCadence.includes(group.frontmatter.meetingCadence ?? "");
+
+    return matchesTags && matchesCadence;
+  });
 
   return (
     <main className="mx-auto max-w-4xl space-y-8 px-6 py-16">
@@ -17,8 +68,17 @@ export default async function GroupsIndexPage() {
         </p>
       </header>
 
+      <FilterPanel
+        searchKeyLabel="Search"
+        searchPlaceholder="Search groups…"
+        facetGroups={[
+          { key: "tag", label: "Tags", values: tags },
+          { key: "cadence", label: "Cadence", values: cadences },
+        ]}
+      />
+
       <section className="grid gap-4 sm:grid-cols-2">
-        {groups.map((group) => (
+        {results.map((group) => (
           <Link
             key={group.slug}
             href={`/community/groups/${group.slug}`}
@@ -45,13 +105,12 @@ export default async function GroupsIndexPage() {
             </div>
           </Link>
         ))}
-        {groups.length === 0 ? (
+        {results.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-8 text-sm text-muted-foreground sm:col-span-2">
-            No groups yet.
+            No results. Try clearing filters or changing your search.
           </div>
         ) : null}
       </section>
     </main>
   );
 }
-
