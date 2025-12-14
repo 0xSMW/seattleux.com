@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { getAllCompanies } from "@/lib/content/loaders";
 import { getCompanyFacets } from "@/lib/content/facets";
 import { FilterPanel } from "@/components/filters/FilterPanel";
+import { isStale } from "@/lib/content/stale";
+import { TeamsListClient } from "./TeamsListClient";
 
 export const dynamic = "force-static";
 
@@ -56,6 +57,17 @@ export default async function TeamsIndexPage(props: {
     return matchesPresence && matchesFocus && matchesIndustry;
   });
 
+  const items = results.map((company) => ({
+    slug: company.slug,
+    name: company.frontmatter.name,
+    presence: company.frontmatter.seattlePresence,
+    focus: company.frontmatter.teamFocus ?? [],
+    featured: Boolean(company.frontmatter.featured),
+    stale: isStale(company.frontmatter.lastVerified),
+  }));
+
+  const resetKey = params.toString();
+
   return (
     <main className="mx-auto max-w-4xl space-y-8 px-6 py-16">
       <header className="space-y-2">
@@ -79,45 +91,13 @@ export default async function TeamsIndexPage(props: {
 
       <div className="text-sm text-muted-foreground">{results.length} results</div>
 
-      <section className="grid gap-4 sm:grid-cols-2">
-        {results.map((company) => (
-          <Link
-            key={company.slug}
-            href={`/teams/${company.slug}`}
-            className="rounded-xl border border-border bg-card p-5 hover:bg-accent"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-base font-semibold text-foreground">
-                {company.frontmatter.name}
-              </div>
-              {company.frontmatter.featured ? (
-                <span className="rounded-full bg-primary px-2 py-1 text-xs font-medium text-primary-foreground">
-                  Featured
-                </span>
-              ) : null}
-            </div>
-            <div className="mt-2 text-sm text-muted-foreground">
-              {company.frontmatter.seattlePresence}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(company.frontmatter.teamFocus ?? []).slice(0, 3).map((focus) => (
-                <span
-                  key={focus}
-                  className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"
-                >
-                  {focus}
-                </span>
-              ))}
-            </div>
-          </Link>
-        ))}
-        {results.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border p-8 text-sm text-muted-foreground sm:col-span-2">
-            No results. Try clearing filters or changing your search.
-          </div>
-        ) : null}
-      </section>
+      {items.length > 0 ? (
+        <TeamsListClient items={items} resetKey={resetKey} />
+      ) : (
+        <div className="rounded-xl border border-dashed border-border p-8 text-sm text-muted-foreground">
+          No results. Try clearing filters or changing your search.
+        </div>
+      )}
     </main>
   );
 }
-
