@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { Mdx } from "@/components/mdx/Mdx";
 import { jsonLdScriptTag } from "@/lib/seo/jsonLd";
 import { getAllGroups, getGroupBySlug } from "@/lib/content/loaders";
+import { getEditUrlForContentPath, getNewIssueUrl } from "@/lib/links/repo";
+import { getSiteUrl } from "@/lib/seo/site";
+import { Breadcrumbs } from "@/components/nav/Breadcrumbs";
 
 export const dynamic = "force-static";
 
@@ -17,7 +20,18 @@ export async function generateMetadata(props: {
   const { slug } = await props.params;
   try {
     const group = await getGroupBySlug(slug);
-    return { title: group.frontmatter.name, description: group.frontmatter.description };
+    const siteUrl = getSiteUrl();
+    const canonical = `${siteUrl}/community/groups/${group.slug}`;
+    return {
+      title: group.frontmatter.name,
+      description: group.frontmatter.description,
+      alternates: { canonical },
+      openGraph: {
+        title: group.frontmatter.name,
+        description: group.frontmatter.description,
+        url: canonical,
+      },
+    };
   } catch {
     return {};
   }
@@ -35,7 +49,7 @@ export default async function GroupDetailPage(props: {
     notFound();
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteUrl = getSiteUrl();
   const canonicalUrl = `${siteUrl}/community/groups/${group.slug}`;
   const jsonLd = {
     "@context": "https://schema.org",
@@ -45,9 +59,23 @@ export default async function GroupDetailPage(props: {
     mainEntityOfPage: canonicalUrl,
   };
 
+  const editUrl = getEditUrlForContentPath(`content/groups/${group.slug}.mdx`);
+  const issueUrl =
+    getNewIssueUrl({
+      title: `Group update: ${group.frontmatter.name}`,
+      body: `Link: ${canonicalUrl}\n\nWhat needs updating?\n- \n`,
+    }) ?? "/contribute";
+
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-6 py-16">
       {jsonLdScriptTag({ data: jsonLd })}
+      <Breadcrumbs
+        items={[
+          { href: "/", label: "Home" },
+          { href: "/community/groups", label: "Groups" },
+          { href: `/community/groups/${group.slug}`, label: group.frontmatter.name },
+        ]}
+      />
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
           {group.frontmatter.name}
@@ -77,7 +105,27 @@ export default async function GroupDetailPage(props: {
       <article className="mdx">
         <Mdx source={group.body} />
       </article>
+
+      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+        {editUrl ? (
+          <a
+            href={editUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
+            Edit this group
+          </a>
+        ) : null}
+        <a
+          href={issueUrl}
+          target={issueUrl.startsWith("http") ? "_blank" : undefined}
+          rel={issueUrl.startsWith("http") ? "noreferrer" : undefined}
+          className="underline underline-offset-4 hover:text-foreground"
+        >
+          Report an issue
+        </a>
+      </div>
     </main>
   );
 }
-
