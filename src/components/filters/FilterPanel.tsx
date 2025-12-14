@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 function toggleParamValue(
@@ -28,6 +28,7 @@ export function FilterPanel(props: {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [copied, setCopied] = useState(false);
 
   const selected = useMemo(() => {
     const map = new Map<string, Set<string>>();
@@ -41,6 +42,17 @@ export function FilterPanel(props: {
   const hasAnyFilter =
     q.trim().length > 0 ||
     props.facetGroups.some((g) => (searchParams.getAll(g.key) ?? []).length > 0);
+
+  const selectedChips = useMemo(() => {
+    const chips: Array<{ groupKey: string; label: string; value: string }> = [];
+    for (const group of props.facetGroups) {
+      const values = searchParams.getAll(group.key);
+      for (const value of values) {
+        chips.push({ groupKey: group.key, label: group.label, value });
+      }
+    }
+    return chips;
+  }, [props.facetGroups, searchParams]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -61,21 +73,78 @@ export function FilterPanel(props: {
           />
         </label>
 
-        {hasAnyFilter ? (
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => router.replace(pathname)}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(window.location.href);
+                setCopied(true);
+                window.setTimeout(() => setCopied(false), 1200);
+              } catch {
+                // no-op
+              }
+            }}
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium text-foreground hover:bg-accent"
           >
-            Clear
+            {copied ? "Copied" : "Copy link"}
           </button>
-        ) : null}
+          {hasAnyFilter ? (
+            <button
+              type="button"
+              onClick={() => router.replace(pathname)}
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+            >
+              Clear all
+            </button>
+          ) : null}
+        </div>
       </div>
+
+      {selectedChips.length > 0 ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {selectedChips.map((chip) => (
+            <button
+              key={`${chip.groupKey}:${chip.value}`}
+              type="button"
+              onClick={() => {
+                const next = toggleParamValue(searchParams, chip.groupKey, chip.value);
+                router.replace(`${pathname}?${next.toString()}`);
+              }}
+              className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-background px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+              title={`Remove ${chip.label}: ${chip.value}`}
+            >
+              <span className="text-foreground/80">{chip.label}</span>
+              <span className="text-muted-foreground">{chip.value}</span>
+              <span aria-hidden="true" className="text-muted-foreground/70">
+                ×
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
         {props.facetGroups.map((group) => (
           <fieldset key={group.key} className="space-y-2">
-            <legend className="text-xs font-medium text-muted-foreground">{group.label}</legend>
+            <div className="flex items-center justify-between gap-3">
+              <legend className="text-xs font-medium text-muted-foreground">
+                {group.label}
+              </legend>
+              {searchParams.getAll(group.key).length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = new URLSearchParams(searchParams);
+                    next.delete(group.key);
+                    router.replace(`${pathname}?${next.toString()}`);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
             <div className="flex max-h-44 flex-col gap-2 overflow-auto pr-1">
               {group.values.map((value) => {
                 const checked = selected.get(group.key)?.has(value) ?? false;
