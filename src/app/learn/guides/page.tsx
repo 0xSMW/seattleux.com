@@ -50,7 +50,28 @@ export default async function GuidesIndexPage(props: {
           Guides
         </h1>
         <p className="text-muted-foreground">
-          Best practices and how-tos for UX work.
+          Best practices and how-tos for UX work. Subscribe:{" "}
+          <a
+            href="/learn/guides/rss.xml"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
+            RSS
+          </a>
+          {" · "}
+          <a
+            href="/learn/guides/atom.xml"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
+            Atom
+          </a>
+          {" · "}
+          <a
+            href="/learn/guides/feed.json"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
+            JSON
+          </a>
+          .
         </p>
       </header>
 
