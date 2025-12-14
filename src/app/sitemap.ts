@@ -7,8 +7,9 @@ import {
   getAllGuides,
   getAllPlaybooks,
 } from "@/lib/content/loaders";
+import { getSiteUrl } from "@/lib/seo/site";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = getSiteUrl();
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [firms, companies, guides, playbooks, events, groups] = await Promise.all([
@@ -21,9 +22,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]);
 
   const now = new Date();
+  const tagSet = new Set<string>();
+  for (const g of guides) for (const t of g.frontmatter.tags ?? []) tagSet.add(t);
+  for (const p of playbooks) for (const t of p.frontmatter.tags ?? []) tagSet.add(t);
+  const tags = Array.from(tagSet).sort((a, b) => a.localeCompare(b));
 
   return [
     { url: siteUrl, lastModified: now },
+    { url: `${siteUrl}/about`, lastModified: now },
+    { url: `${siteUrl}/privacy`, lastModified: now },
     { url: `${siteUrl}/agencies`, lastModified: now },
     ...firms.map((firm) => ({
       url: `${siteUrl}/agencies/${firm.slug}`,
@@ -36,6 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     { url: `${siteUrl}/learn`, lastModified: now },
     { url: `${siteUrl}/learn/guides`, lastModified: now },
+    { url: `${siteUrl}/learn/guides/rss.xml`, lastModified: now },
     ...guides.map((guide) => ({
       url: `${siteUrl}/learn/guides/${guide.slug}`,
       lastModified: new Date(guide.frontmatter.updatedAt ?? guide.frontmatter.publishedAt),
@@ -47,6 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     { url: `${siteUrl}/community`, lastModified: now },
     { url: `${siteUrl}/community/events`, lastModified: now },
+    { url: `${siteUrl}/community/events.ics`, lastModified: now },
     ...events.map((event) => ({
       url: `${siteUrl}/community/events/${event.slug}`,
       lastModified: new Date(event.frontmatter.startAt),
@@ -56,6 +65,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${siteUrl}/community/groups/${group.slug}`,
       lastModified: new Date(group.frontmatter.lastVerified),
     })),
+    { url: `${siteUrl}/tags`, lastModified: now },
+    ...tags.map((tag) => ({
+      url: `${siteUrl}/tags/${encodeURIComponent(tag)}`,
+      lastModified: now,
+    })),
+    { url: `${siteUrl}/search`, lastModified: now },
+    { url: `${siteUrl}/policies/listings`, lastModified: now },
+    { url: `${siteUrl}/code-of-conduct`, lastModified: now },
+    { url: `${siteUrl}/stale`, lastModified: now },
     { url: `${siteUrl}/contribute`, lastModified: now },
   ];
 }
