@@ -41,6 +41,7 @@ export const GuideFrontmatterSchema = z.object({
   publishedAt: DateString,
   updatedAt: DateString.optional(),
   tags: z.array(z.string().min(1)).default([]),
+  featured: z.boolean().optional(),
   draft: z.boolean().optional(),
 });
 
@@ -52,6 +53,7 @@ export const PlaybookFrontmatterSchema = z.object({
   publishedAt: DateString,
   tags: z.array(z.string().min(1)).default([]),
   artifactLinks: z.array(UrlString).optional(),
+  featured: z.boolean().optional(),
   draft: z.boolean().optional(),
 });
 
@@ -67,6 +69,7 @@ export const EventFrontmatterSchema = z.object({
   host: z.string().min(1).optional(),
   ticketUrl: UrlString.optional(),
   tags: z.array(z.string().min(1)).default([]),
+  featured: z.boolean().optional(),
   status: z.enum(["upcoming", "past", "cancelled"]).default("upcoming"),
 });
 
