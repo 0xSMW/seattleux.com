@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { Mdx } from "@/components/mdx/Mdx";
 import { getAllCompanies, getCompanyBySlug } from "@/lib/content/loaders";
 import { jsonLdScriptTag } from "@/lib/seo/jsonLd";
+import { getEditUrlForContentPath, getNewIssueUrl } from "@/lib/links/repo";
+import { getSiteUrl } from "@/lib/seo/site";
+import { Breadcrumbs } from "@/components/nav/Breadcrumbs";
 
 export const dynamic = "force-static";
 
@@ -17,9 +20,17 @@ export async function generateMetadata(props: {
   const { slug } = await props.params;
   try {
     const company = await getCompanyBySlug(slug);
+    const siteUrl = getSiteUrl();
+    const canonical = `${siteUrl}/teams/${company.slug}`;
     return {
       title: company.frontmatter.name,
       description: `Seattle UX team: ${company.frontmatter.name}`,
+      alternates: { canonical },
+      openGraph: {
+        title: company.frontmatter.name,
+        description: `Seattle UX team: ${company.frontmatter.name}`,
+        url: canonical,
+      },
     };
   } catch {
     return {};
@@ -38,7 +49,7 @@ export default async function TeamDetailPage(props: {
     notFound();
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteUrl = getSiteUrl();
   const canonicalUrl = `${siteUrl}/teams/${company.slug}`;
   const jsonLd = {
     "@context": "https://schema.org",
@@ -48,9 +59,25 @@ export default async function TeamDetailPage(props: {
     mainEntityOfPage: canonicalUrl,
   };
 
+  const editUrl = getEditUrlForContentPath(
+    `content/companies/${company.slug}.mdx`,
+  );
+  const issueUrl =
+    getNewIssueUrl({
+      title: `Update team listing: ${company.frontmatter.name}`,
+      body: `Link: ${canonicalUrl}\n\nWhat needs updating?\n- \n`,
+    }) ?? "/contribute";
+
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-6 py-16">
       {jsonLdScriptTag({ data: jsonLd })}
+      <Breadcrumbs
+        items={[
+          { href: "/", label: "Home" },
+          { href: "/teams", label: "Teams" },
+          { href: `/teams/${company.slug}`, label: company.frontmatter.name },
+        ]}
+      />
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
           {company.frontmatter.name}
@@ -69,6 +96,18 @@ export default async function TeamDetailPage(props: {
             </span>
           ))}
         </div>
+        {(company.frontmatter.industries?.length ?? 0) > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {company.frontmatter.industries.map((industry) => (
+              <span
+                key={industry}
+                className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"
+              >
+                {industry}
+              </span>
+            ))}
+          </div>
+        ) : null}
         <div className="flex flex-wrap gap-3">
           <a
             className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
@@ -97,7 +136,27 @@ export default async function TeamDetailPage(props: {
       <article className="mdx">
         <Mdx source={company.body} />
       </article>
+
+      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+        {editUrl ? (
+          <a
+            href={editUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
+            Edit this listing
+          </a>
+        ) : null}
+        <a
+          href={issueUrl}
+          target={issueUrl.startsWith("http") ? "_blank" : undefined}
+          rel={issueUrl.startsWith("http") ? "noreferrer" : undefined}
+          className="underline underline-offset-4 hover:text-foreground"
+        >
+          Report an issue
+        </a>
+      </div>
     </main>
   );
 }
-
