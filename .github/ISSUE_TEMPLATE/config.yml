@@ -1,0 +1,6 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Contributing guide
+    url: https://github.com/0xSMW/seattleux.com/blob/main/CONTRIBUTING.md
+    about: How to add or update content via MDX
+
