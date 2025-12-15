@@ -1,0 +1,38 @@
+name: New listing request
+description: Suggest a new agency/team/group to add
+title: "Add listing: <name>"
+labels: ["content", "needs-triage"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Listing type
+      options:
+        - Agency
+        - Team
+        - Group
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      placeholder: "Organization name"
+    validations:
+      required: true
+  - type: input
+    id: website
+    attributes:
+      label: Website
+      placeholder: "https://..."
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Any helpful context (services/team focus, Seattle presence, etc.)
+      placeholder: "Seattle presence:\nTags:\nAnything else:"
+    validations:
+      required: false
+
