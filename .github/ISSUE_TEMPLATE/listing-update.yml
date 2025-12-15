@@ -1,0 +1,21 @@
+name: Listing update
+description: Request an update to an agency/team/group listing
+title: "Update listing: <name>"
+labels: ["content"]
+body:
+  - type: input
+    id: url
+    attributes:
+      label: Page URL
+      placeholder: "https://seattleux.com/agencies/..."
+    validations:
+      required: true
+  - type: textarea
+    id: changes
+    attributes:
+      label: What needs updating?
+      description: Include links/sources if possible.
+      placeholder: "- Website changed to...\n- Services should include...\n- lastVerified should be..."
+    validations:
+      required: true
+
