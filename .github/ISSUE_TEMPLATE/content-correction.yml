@@ -1,0 +1,20 @@
+name: Guide/playbook correction
+description: Suggest a correction or improvement to a guide/playbook
+title: "Content correction: <title>"
+labels: ["content"]
+body:
+  - type: input
+    id: url
+    attributes:
+      label: Page URL
+      placeholder: "https://seattleux.com/learn/guides/..."
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: What should change?
+      placeholder: "Describe what’s wrong and what the fix should be."
+    validations:
+      required: true
+
